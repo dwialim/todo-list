@@ -17,8 +17,10 @@ class User extends Authenticatable{
 	 */
 	protected $fillable = [
 		'name',
+		'username',
 		'email',
 	];
+
 
 	/*
 	|--------------------------------------------------------------------------
@@ -29,18 +31,20 @@ class User extends Authenticatable{
 	|		2. Mutators: mengubah nilai atribut Eloquent ketika disetel (create / update)
 	|
 	*/
-	public function displayName():Attribute{ # Instance attribute
-		return Attribute::make(
-			set: fn($value)=>$this->attributes['id'], # Mutator method.
-		);
-	}
+	// public function name():Attribute{ # Instance attribute
+	// 	return Attribute::make(
+	// 		set: fn($value)=>strtolower($value), # Mutator method.
+	// 	);
+	// }
 
-   public static function store($request){
-      $store = new User;
-      $user->name = $request->nama;
-      $user->username = $request->username;
-      $user->email = $request->email;
-   }
+	public static function store($request){
+		$store = new User;
+		$store->name = $request->nama;
+		$store->username = $request->username;
+		$store->email = $request->email;
+		$store->save();
+		return $store ? : false;
+	}
 
 
 

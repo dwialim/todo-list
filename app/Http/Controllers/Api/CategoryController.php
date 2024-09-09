@@ -13,7 +13,6 @@ class CategoryController extends Controller{
 	public function getCategory(Request $request){
 		try{
 			$data = Categorie::getData($request);
-			// $data = [];
 			$request->merge([
 				'payload' => [
 					'message' => 'Ok',
@@ -23,13 +22,20 @@ class CategoryController extends Controller{
 			]);
 			return Help::resHttp($request);
 		}catch(\Throwable $e){
-			$request->merge([
-				'payload' => [
-					'message' => 'Terjadi kesalahan sistem.',
-					'code' => 500,
-				]
-			]);
-			return Help::resHttp($request);
+			# Lakukan log untuk debugging
+			Log::debug(json_encode([
+				'source' => $e->getFile(),
+				'line' => $e->getLine(),
+				'message' => $e->getMessage(),
+			],JSON_PRETTY_PRINT));
+			return Help::resHttp(
+				$request->merge([
+					'payload' => [
+						'message' => 'Terjadi kesalahan sistem.',
+						'code' => 500,
+					]
+				])
+			);
 		}
 	}
 }

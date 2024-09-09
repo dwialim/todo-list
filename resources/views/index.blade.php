@@ -48,6 +48,13 @@
 			display: flex;
 			flex-direction: column;
 		}
+		.show-alert{
+			border: 1px solid red !important;
+			border-radius: 5px;
+		}
+		.fw5 {
+			font-weight: 500;
+		}
 	</style>
 
 
@@ -76,19 +83,40 @@
 						<div class="row">
 							<div class="col-md-12">
 								<div class="card">
-									<div class="card-body">
+									<div class="card-body" id="user-container">
 										<div class="row">
 											<div class="col md-4">
 												<label class="form-label">Nama</label>
-												<input class="form-control mb-3" type="text" placeholder="Nama" id="nama" name="nama">
+												<input
+													class="form-control mb-3"
+													id="nama"
+													type="text"
+													placeholder="Nama"
+													name="nama"
+													onkeyup="checkShowAlert(this)"
+												>
 											</div>
 											<div class="col md-4">
 												<label class="form-label">Username</label>
-												<input class="form-control mb-3" type="text" placeholder="Username" id="username" name="username">
+												<input
+													class="form-control mb-3"
+													id="username"
+													type="text"
+													placeholder="Username"
+													name="username"
+													onkeyup="checkShowAlert(this)"
+												>
 											</div>
 											<div class="col md-4">
 												<label class="form-label">Email</label>
-												<input class="form-control mb-3" type="text" placeholder="Email" id="email" name="email">
+												<input
+													class="form-control mb-3"
+													id="email"
+													type="text"
+													placeholder="Email"
+													name="email"
+													onkeyup="checkShowAlert(this)"
+												>
 											</div>
 										</div>
 									</div>
@@ -189,12 +217,26 @@
 					<div class="row" id="rows-${code}">
 						<div class="col-md-8">
 							<label class="form-label">Judul To Do</label>
-							<input class="form-control mb-3" type="text" placeholder="Contoh : Perbaikan api master" name="judul_todo[]">
+							<input
+								class="form-control mb-3"
+								data-id="${code}"
+								id="judul-todo-${code}"
+								type="text"
+								name="judul_todo[]"
+								placeholder="Contoh : Perbaikan api master"
+								onkeyup="checkShowAlert(this)"
+							>
 						</div>
 						<div class="col-md-3">
 							<label class="form-label">Kategori</label>
-							<select class="form-select mb-3" id="kategori-${code}" name="kategori[]">
-								<option value="" disabled selected>-- PILIH OPSI --</option>
+							<select
+								class="form-select mb-3"
+								data-id="${code}"
+								id="kategori-${code}"
+								name="kategori[]"
+								onchange="changeCategory(this)"
+							>
+								<option value="" readonly selected>-- PILIH OPSI --</option>
 							</select>
 						</div>
 						<div
@@ -232,8 +274,56 @@
 				})
 			})
 		})
+		
+		function validasiTodo(){
+			let {judulMessage,kategoriMessage} = ''
+			$('#todo-container .row').each(function(){
+				let judul = $(this).find('input[name="judul_todo[]"]')
+				let kategori = $(this).find('select[name="kategori[]"]')
+				if(!judul.val()){
+					judulMessage = 'Ada <b>Judul To Do</b> yang belum diisi.'
+					// $(`#judul-todo-${judul.data('id')}`).next().addClass('show-alert')
+					$(`#judul-todo-${judul.data('id')}`).addClass('show-alert')
+				}else{
+					$(`#judul-todo-${judul.data('id')}`).removeClass('show-alert')
+				}
+				if(!kategori.val()){
+					kategoriMessage = ' Ada <b>Kategori</b> yang belum diisi.'
+					// $(`#kategori-${kategori.data('id')}`).next().addClass('show-alert')
+					$(`#kategori-${kategori.data('id')}`).addClass('show-alert')
+				}else{
+					$(`#kategori-${kategori.data('id')}`).removeClass('show-alert')
+				}
+			})
+			let message = (judulMessage?judulMessage:'')+(kategoriMessage?kategoriMessage:'')
+			return message
+		}
+		function checkShowAlert($this){
+			$this = $($this)
+			if($this.val().replace(/ /g, '')){
+				$this.removeClass('show-alert')
+			}
+		}
+		function changeCategory($this){
+			$this = $($this)
+			if($this.val()){
+				$this.removeClass('show-alert')
+			}
+		}
 
 		$('#todo-save').click((e)=>{
+			let message = validasiTodo()
+			if(message){
+				Swal.fire({
+					icon: 'warning',
+					title: 'Oops..',
+					html: message,
+					showConfirmButton: true,
+				})
+				return
+			}
+			// console.log(message)
+			// return
 			Swal.fire({
 				title: 'Apakah anda yakin?',
 				text: 'Pastikan To do sudah benar sebelum disimpan.',
@@ -246,7 +336,7 @@
 					`,
 				},
 				showCancelButton: true,
-				confirmButtonColor: '#F64E60',
+				confirmButtonColor: '#55B152',
 				cancelButtonColor: '#F3F6F9',
 				confirmButtonText: 'Ya, simpan',
 				cancelButtonText: 'Batal',
@@ -259,6 +349,7 @@
 					formData.append('nama',$('#nama').val())
 					formData.append('username',$('#username').val())
 					formData.append('email',$('#email').val())
+
 					axios.post("{{route('category.store')}}",formData)
 					.then((response)=>{
 						console.log(response)
@@ -278,8 +369,20 @@
 						// })
 					})
 					.catch(function(error){
-						error.status = error.response.status
+						let status = error.response.status
 						console.error(error)
+						if(status===400){
+							$('#user-container input').addClass('show-alert')
+						}
+						Swal.fire({
+							icon: status===400 ? 'warning' : 'error',
+							title: status===400 ? 'Whoops..' : 'Error',
+							html: error.response.data.metadata.message,
+							showConfirmButton: true,
+							allowOutsideClick: false,
+							allowEscapeKey: false,
+							hideClass: fadeOutUp,
+						})
 					})
 				}
 			})
