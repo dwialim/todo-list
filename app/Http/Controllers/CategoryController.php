@@ -17,11 +17,20 @@ class CategoryController extends Controller{
 		return view('index');
 	}
 
-	// public function store(Request $request){
-	public function store(UserTodoRequest $request){
-		return $request->all();
+	public function store(Request $request){
+	// public function store(UserTodoRequest $request){
 		DB::beginTransaction();
 		try{
+			if(User::where('username',$request->username)->orWhere('email',$request->email)->count()){
+				return Help::resHttp(
+					$request->merge([
+						'payload' => [
+							'message' => 'Username atau email sudah digunakan',
+							'code' => 409,
+						]
+					])
+				);
+			}
 			if(!($user = User::store($request))){
 				DB::rollBack();
 				return Help::resHttp(
@@ -39,7 +48,7 @@ class CategoryController extends Controller{
 				$task->user_id = $request->user_id;
 				$task->category_id = $request->kategori[$key];
 				$task->description = $val;
-				$task->created_by = $request->user_id;;
+				$task->created_by = $request->user_id;
 				if(!$task->save()){
 					DB::rollBack();
 					return Help::resHttp(

@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->integer('user_id');
             $table->integer('category_id');
-            $table->integer('description');
+            $table->text('description');
             $table->timestamps();
             $table->softDeletes();
             $table->integer('created_by')->nullable();

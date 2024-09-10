@@ -133,31 +133,11 @@
 							<div class="col-md-12">
 								<form class="form-todo" id="todo-container">
 								</form>
-								{{-- <div class="row" id="rows-1">
-									<div class="col-md-8">
-										<label class="form-label">Nama</label>
-										<input class="form-control mb-3" type="text" placeholder="Nama" aria-label="default input example">
-									</div>
-									<div class="col-md-3 pe-0">
-										<label class="form-label">Kategori</label>
-										<select class="form-select mb-3" aria-label="Default select example">
-											<option selected>-- PILIH OPSI --</option>
-											<option value="">API 1</option>
-											<option value="">API 2</option>
-										</select>
-									</div>
-									<div
-										class="col-md-1 ps-0"
-										style="margin-top: 10px; align-items: center; display: flex; flex-direction: row; justify-content: flex-end;"
-									>
-										<button class="btn btn-md btn-danger todo-delete" onclick="todoDelete('1')" type="button"><i class="fas fa-trash mx-0"></i></button>
-									</div>
-								</div> --}}
 							</div>
 						</div>
 						<div
 							class="row row-simpan mb-4"
-							{{-- style="display: none;" --}}
+							style="display: none;"
 						>
 							<div class="col-md-12 simpan-container">
 								<button class="btn btn-sm btn-success" id="todo-save">SIMPAN</button>
@@ -171,9 +151,10 @@
 	</div>
 
 
-	<script src="assets/js/jquery.min.js"></script>
+	<script src="{{asset('assets/js/jquery.min.js')}}"></script>
 	<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 	<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
 	<script>
 		const fadeOutUp = {
 			popup: `
@@ -182,6 +163,11 @@
 				animate__faster
 			`,
 		}
+		$.fn.isEmail = function() {
+			var regex = /^([a-zA-Z0-9_.+-])+\@(([a-zA-Z0-9-])+\.)+([a-zA-Z0-9]{2,4})+$/;
+			return regex.test(this.val())
+		}
+
 		function generateId(n){
 			let text = '';
 			let possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
@@ -190,6 +176,101 @@
 				text += possible.charAt(Math.floor(Math.random() * possible.length));
 			}
 			return text;
+		}
+		function validasiForm(){
+			let message = ''
+			text = ''
+			$('#user-container input').each(function(idx){
+				if(!$(this).val()){
+					$(this).addClass('show-alert')
+					text =  $(this)[0].id[0].toUpperCase() +$(this)[0].id.slice(1)
+					message += `<span class="fw5">${text}</span> harus diisi.<br>`
+				}
+				if($(this).val() && $(this)[0].id=='email' && $(this).isEmail()==false){
+					$(this).addClass('show-alert')
+					message += `<span class="fw5">Email</span> tidak valid.<br>`
+				}
+			})
+			let {judulMessage,kategoriMessage} = ''
+			$('#todo-container .row').each(function(){
+				let judul = $(this).find('input[name="judul_todo[]"]')
+				let kategori = $(this).find('select[name="kategori[]"]')
+				if(!judul.val()){
+					judulMessage = `Ada <span class="fw5">Judul To Do</span> yang belum diisi.<br>`
+					$(`#judul-todo-${judul.data('id')}`).addClass('show-alert')
+				}else{
+					$(`#judul-todo-${judul.data('id')}`).removeClass('show-alert')
+				}
+				if(!kategori.val()){
+					kategoriMessage = `Ada <span class="fw5">Kategori</span> yang belum diisi.<br>`
+					$(`#kategori-${kategori.data('id')}`).addClass('show-alert')
+				}else{
+					$(`#kategori-${kategori.data('id')}`).removeClass('show-alert')
+				}
+			})
+			if(judulMessage){
+				message += judulMessage
+			}
+			if(kategoriMessage){
+				message += kategoriMessage
+			}
+			return message
+		}
+
+		function checkShowAlert($this){
+			$this = $($this)
+			if($this.val().replace(/ /g, '')){
+				$this.removeClass('show-alert')
+			}
+		}
+
+		function changeCategory($this){
+			$this = $($this)
+			if($this.val()){
+				$this.removeClass('show-alert')
+			}
+		}
+
+		function todoDelete(id){
+			Swal.fire({
+				title: 'Apakah anda yakin?',
+				text: 'To do yang dihapus tidak dapat dikembalikan.',
+				icon: 'warning',
+				showClass: {
+					popup: `
+						animate__animated
+						animate__fadeInDown
+						animate__faster
+					`,
+				},
+				showCancelButton: true,
+				confirmButtonColor: '#F64E60',
+				cancelButtonColor: '#F3F6F9',
+				confirmButtonText: 'Ya, hapus',
+				cancelButtonText: 'Batal',
+				allowOutsideClick: false,
+				allowEscapeKey: false
+			}).then(async(res)=>{
+				if(res.value === true){
+					if($('#todo-container .row').length<=1){
+						// $('.row-simpan').hide('slow')
+						$('.row-simpan').fadeOut(400)
+					}
+					await $('#rows-'+id).hide('slow',async function(){
+						await $(this).remove()
+					})
+					Swal.fire({
+						icon: 'success',
+						title: 'Berhasil',
+						text: 'To do berhasil dihapus',
+						confirmButtonText: 'Berhasil',
+						confirmButtonColor: '#50CD89',
+						allowOutsideClick: false,
+						allowEscapeKey: false,
+						hideClass: fadeOutUp,
+					})
+				}
+			})
 		}
 
 		$('#todo-add').click(async(e)=>{
@@ -208,7 +289,7 @@
 					})
 					return
 				}
-				
+
 				// generate kode untuk selector supaya masing masing form memiliki id yg unik
 				const code = generateId(7)
 
@@ -255,9 +336,9 @@
 				// Append category to select option
 				const data = response.data.data
 				$.each(data, function (i, item) {
-					$('#kategori-'+code).append($('<option>', { 
+					$('#kategori-'+code).append($('<option>', {
 						value: item.id,
-						text : item.display_name 
+						text : item.display_name
 					}))
 				})
 			})
@@ -274,56 +355,9 @@
 				})
 			})
 		})
-		
-		function validasiTodo(){
-			let {judulMessage,kategoriMessage} = ''
-			$('#todo-container .row').each(function(){
-				let judul = $(this).find('input[name="judul_todo[]"]')
-				let kategori = $(this).find('select[name="kategori[]"]')
-				if(!judul.val()){
-					judulMessage = 'Ada <b>Judul To Do</b> yang belum diisi.'
-					// $(`#judul-todo-${judul.data('id')}`).next().addClass('show-alert')
-					$(`#judul-todo-${judul.data('id')}`).addClass('show-alert')
-				}else{
-					$(`#judul-todo-${judul.data('id')}`).removeClass('show-alert')
-				}
-				if(!kategori.val()){
-					kategoriMessage = ' Ada <b>Kategori</b> yang belum diisi.'
-					// $(`#kategori-${kategori.data('id')}`).next().addClass('show-alert')
-					$(`#kategori-${kategori.data('id')}`).addClass('show-alert')
-				}else{
-					$(`#kategori-${kategori.data('id')}`).removeClass('show-alert')
-				}
-			})
-			let message = (judulMessage?judulMessage:'')+(kategoriMessage?kategoriMessage:'')
-			return message
-		}
-		function checkShowAlert($this){
-			$this = $($this)
-			if($this.val().replace(/ /g, '')){
-				$this.removeClass('show-alert')
-			}
-		}
-		function changeCategory($this){
-			$this = $($this)
-			if($this.val()){
-				$this.removeClass('show-alert')
-			}
-		}
+
 
 		$('#todo-save').click((e)=>{
-			let message = validasiTodo()
-			if(message){
-				Swal.fire({
-					icon: 'warning',
-					title: 'Oops..',
-					html: message,
-					showConfirmButton: true,
-				})
-				return
-			}
-			// console.log(message)
-			// return
 			Swal.fire({
 				title: 'Apakah anda yakin?',
 				text: 'Pastikan To do sudah benar sebelum disimpan.',
@@ -345,6 +379,16 @@
 			}).then((res)=>{
 				e.preventDefault()
 				if(res.value === true){
+					let message = validasiForm()
+					if(message){
+						Swal.fire({
+							icon: 'warning',
+							title: 'Oops..',
+							html: message,
+							showConfirmButton: true,
+						})
+						return
+					}
 					const formData = new FormData($('.form-todo')[0])
 					formData.append('nama',$('#nama').val())
 					formData.append('username',$('#username').val())
@@ -352,21 +396,25 @@
 
 					axios.post("{{route('category.store')}}",formData)
 					.then((response)=>{
-						console.log(response)
-						// $('#todo-container').children().fadeOut(500, function() {
-						// 	$('#todo-container').empty()
-						// })
-						// $('.row-simpan').fadeOut(500)
-						// Swal.fire({
-						// 	icon: 'success',
-						// 	title: 'Berhasil',
-						// 	text: 'To do berhasil disimpan',
-						// 	showConfirmButton: false,
-						// 	allowOutsideClick: false,
-						// 	allowEscapeKey: false,
-						// 	timer: 1000,
-						// 	hideClass: fadeOutUp,
-						// })
+						$('#todo-container').children().fadeOut(500, function() {
+							$('#todo-container').empty()
+						})
+						$('.row-simpan').fadeOut(500)
+
+                        // Reset input data user
+						$('#user-container input').each(function(idx){
+							$(this).val('')
+						})
+						Swal.fire({
+							icon: 'success',
+							title: 'Berhasil',
+							text: 'To do berhasil disimpan',
+							showConfirmButton: false,
+							allowOutsideClick: false,
+							allowEscapeKey: false,
+							timer: 1000,
+							hideClass: fadeOutUp,
+						})
 					})
 					.catch(function(error){
 						let status = error.response.status
@@ -375,8 +423,8 @@
 							$('#user-container input').addClass('show-alert')
 						}
 						Swal.fire({
-							icon: status===400 ? 'warning' : 'error',
-							title: status===400 ? 'Whoops..' : 'Error',
+							icon: jQuery.inArray(status,[400,409])!==-1 ? 'warning' : 'error',
+							title: jQuery.inArray(status,[400,409])!==-1 ? 'Whoops..' : 'Error',
 							html: error.response.data.metadata.message,
 							showConfirmButton: true,
 							allowOutsideClick: false,
@@ -387,48 +435,6 @@
 				}
 			})
 		})
-
-		function todoDelete(id){
-			Swal.fire({
-				title: 'Apakah anda yakin?',
-				text: 'To do yang dihapus tidak dapat dikembalikan.',
-				icon: 'warning',
-				showClass: {
-					popup: `
-						animate__animated
-						animate__fadeInDown
-						animate__faster
-					`,
-				},
-				showCancelButton: true,
-				confirmButtonColor: '#F64E60',
-				cancelButtonColor: '#F3F6F9',
-				confirmButtonText: 'Ya, hapus',
-				cancelButtonText: 'Batal',
-				allowOutsideClick: false,
-				allowEscapeKey: false
-			}).then(async(res)=>{
-				if(res.value === true){
-					if($('#todo-container .row').length<=1){
-						// $('.row-simpan').hide('slow')
-						$('.row-simpan').fadeOut(400)
-					}
-					await $('#rows-'+id).hide('slow',async function(){
-						await $(this).remove()
-					})
-					Swal.fire({
-						icon: 'success',
-						title: 'Berhasil',
-						text: 'To do berhasil dihapus',
-						confirmButtonText: 'Berhasil',
-						confirmButtonColor: '#50CD89',
-						allowOutsideClick: false,
-						allowEscapeKey: false,
-						hideClass: fadeOutUp,
-					})
-				}
-			})
-		}
 	</script>
 </body>
 </html>
